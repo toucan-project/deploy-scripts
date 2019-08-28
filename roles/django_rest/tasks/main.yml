@@ -162,7 +162,7 @@
            --exclude '*test*' \
            --xz -cvf  /tmp/deploy.tar.xz .
     args:
-      chdir: "{{ playbook_dir }}/../django"
+      chdir: "{{ playbook_dir }}/../toucan"
 
 - name: Extracting server files on remote host
   become: yes
