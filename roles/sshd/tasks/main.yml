@@ -1,0 +1,28 @@
+- name: Make sure sshusers group exists
+  become: yes
+  group:
+    name: sshusers
+    state: present
+
+- name: Make sure current user is in group
+  become: yes
+  user:
+      name: "{{ ansible_user }}"
+      append: yes
+      groups: sshusers
+
+- name: Copy sshd_config file
+  become: yes
+  copy: 
+    src: sshd_config_{{ label | mandatory }}
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Restart sshd
+  become: yes
+  service:
+      name: ssh
+      state: restarted
+      enabled: yes

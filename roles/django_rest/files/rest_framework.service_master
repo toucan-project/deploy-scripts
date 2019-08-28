@@ -1,0 +1,13 @@
+[Unit]
+Description=Django rest_framework
+
+[Service]
+ExecStart=/usr/bin/uwsgi \
+        --ini /opt/django/uwsgi.ini
+User=www-data
+Group=www-data
+Restart=on-failure
+KillSignal=SIGQUIT
+Type=notify
+StandardError=syslog
+NotifyAccess=all

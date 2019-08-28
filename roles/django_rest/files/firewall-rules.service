@@ -1,0 +1,15 @@
+[Unit]
+Description=Packet Filtering Framework
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/touch /run/iptables.lock
+ExecStart=/sbin/iptables-restore /etc/iptables.rules
+ExecReload=/sbin/iptables-restore /etc/iptables.rules
+ExecStop=/sbin/iptables-restore /etc/iptables.empty
+ExecStopPost=/bin/rm /var/run/iptables.lock
+RemainAfterExit=yes
+PIDFile=/run/iptables.pid
+
+[Install]
+WantedBy=multi-user.target

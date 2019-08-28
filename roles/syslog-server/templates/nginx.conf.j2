@@ -1,0 +1,18 @@
+source s_nginx {
+	tcp(ip(0.0.0.0) port(25214)
+	tls(key_file("/etc/syslog-ng/cert.d/serverkey.pem")
+	cert_file("/etc/syslog-ng/cert.d/servercert.pem")
+	ca_dir("/etc/syslog-ng/ca.d"))
+	);
+};
+
+destination d_nginx {
+    file(
+        "/var/log/syslog-ng/nginx"
+        owner("root")
+        group("adm")
+        perm(0644)
+        );
+};
+
+log { source(s_nginx); destination(d_nginx); };

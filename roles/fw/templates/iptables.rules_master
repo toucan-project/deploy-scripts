@@ -1,0 +1,11 @@
+*filter
+:INPUT DROP [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [79:12301]
+-A INPUT -i lo -j ACCEPT
+-A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 22 -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 25215 -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 25214 -j ACCEPT
+-A INPUT -j DROP
+COMMIT

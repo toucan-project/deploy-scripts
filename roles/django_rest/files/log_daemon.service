@@ -1,0 +1,17 @@
+[Unit]
+Description=Log monitor
+
+[Service]
+PermissionsStartOnly=true
+ExecStartPre=mkfifo /var/run/canary
+ExecStartPre=chown www-data:www-data /var/run/canary
+ExecStart=/opt/env/bin/python3 /opt/django/manage.py log_daemon
+ExecStopPost=rm /var/run/canary
+User=www-data
+Group=www-data
+Restart=on-failure
+KillSignal=SIGQUIT
+Type=simple
+StandardError=syslog
+StandardOutput=syslog
+NotifyAccess=all

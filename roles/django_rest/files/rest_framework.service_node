@@ -1,0 +1,17 @@
+[Unit]
+Description=Django rest_framework
+
+[Service]
+ExecStart=/usr/bin/uwsgi \
+        --ini /opt/django/uwsgi.ini
+User=www-data
+Group=www-data
+Restart=on-failure
+KillSignal=SIGQUIT
+Type=notify
+StandardError=syslog
+NotifyAccess=all
+Environment=DJANGO_SERVER_TYPE=prod
+Environment=SSH_AUTH_SOCK=/opt/run/ssh-agent.socket
+Environment=SECRET_KEY={{ secret_key | mandatory }}
+Environment=ALLOWED_HOSTS={{ ansible_hosts | mandatory }}

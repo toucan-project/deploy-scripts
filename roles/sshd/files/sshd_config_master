@@ -1,0 +1,67 @@
+# What ports, IPs and protocols we listen for
+Port 22
+
+# Use these options to restrict which interfaces/protocols sshd will bind to
+#ListenAddress ::
+#ListenAddress 0.0.0.0
+
+Protocol 2
+
+# We allow agent forwarding
+AllowAgentForwarding yes
+
+# Authentication:
+LoginGraceTime 120
+# PermitRootLogin prohibit-password
+PermitRootLogin no
+StrictModes yes
+
+PubkeyAuthentication yes
+
+# Don't read the user's ~/.rhosts and ~/.shosts files
+IgnoreRhosts yes
+# similar for protocol version 2
+HostbasedAuthentication no
+
+# Change to no to disable tunnelled clear text passwords
+PasswordAuthentication no
+
+# To enable empty passwords, change to yes (NOT RECOMMENDED)
+PermitEmptyPasswords no
+
+# No need for X11 forwarding
+X11Forwarding no
+#X11DisplayOffset 10
+PrintMotd no
+PrintLastLog yes
+TCPKeepAlive yes
+
+# TCP forwarding for bastion capabilities
+AllowTcpForwarding yes
+
+# Change to yes to enable challenge-response passwords (beware issues with
+# some PAM modules and threads)
+ChallengeResponseAuthentication no
+
+# Set this to 'yes' to enable PAM authentication, account processing,
+# and session processing. If this is enabled, PAM authentication will
+# be allowed through the ChallengeResponseAuthentication and
+# PasswordAuthentication.  Depending on your PAM configuration,
+# PAM authentication via ChallengeResponseAuthentication may bypass
+# the setting of "PermitRootLogin without-password".
+# If you just want the PAM account and session checks to run without
+# PAM authentication, then enable this but set PasswordAuthentication
+# and ChallengeResponseAuthentication to 'no'.
+UsePAM yes
+
+# If you want to whitelist groups, put user group here e.g. sshusers
+AllowGroups sshusers
+
+# You can whitelist users too
+#AllowUsers vincent
+
+# Strong ciphers, kex and MACs
+
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
+KexAlgorithms curve25519-sha256@libssh.org,diffie-hellman-group-exchange-sha256

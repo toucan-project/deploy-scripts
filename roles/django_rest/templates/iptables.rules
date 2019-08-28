@@ -1,0 +1,7 @@
+*filter
+:INPUT ACCEPT [187:13036]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [239:1277475]
+-A INPUT -s {{ remote_ip | mandatory }} -p tcp -m tcp --dport 443 -j ACCEPT
+-A INPUT -p tcp -m tcp --dport 443 -j DROP
+COMMIT

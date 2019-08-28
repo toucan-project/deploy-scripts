@@ -1,0 +1,3 @@
+- hosts: canary_main
+  roles:
+      - django_rest

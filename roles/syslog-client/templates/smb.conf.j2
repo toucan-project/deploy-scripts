@@ -1,0 +1,13 @@
+destination d_smb {
+    tcp("{{ syslog_host | mandatory }}" port(25215)
+    tls(ca_dir("/etc/syslog-ng/ca.d")
+    key_file("/etc/syslog-ng/cert.d/clientkey.pem")
+    cert_file("/etc/syslog-ng/cert.d/clientcert.pem"))
+    );
+};
+
+filter f_smb {
+    program(^smbd_audit$);
+};
+
+log { source(src);  filter { match("smbd_audit")}; destination(d_smb);};

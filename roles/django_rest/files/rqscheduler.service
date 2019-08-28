@@ -1,0 +1,13 @@
+[Unit]
+Description=Django RQ scheduler worker
+
+[Service]
+ExecStart=/opt/env/bin/python3 /opt/django/manage.py rqscheduler
+User=www-data
+Group=www-data
+Restart=on-failure
+KillSignal=SIGQUIT
+Type=simple
+StandardError=syslog
+StandardOutput=syslog
+NotifyAccess=all

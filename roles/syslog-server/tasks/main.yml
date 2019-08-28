@@ -1,0 +1,61 @@
+- name: Copying syslog-ng server configuration
+  become: yes
+  copy:
+    src: files/syslog-ng.conf
+    dest: /etc/syslog-ng/syslog-ng.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Copying syslog-ng conf.d files to server
+  become: yes
+  copy:
+    src: "{{ item }}"
+    dest: /etc/syslog-ng/conf.d/.
+    owner: root
+    group: root
+    mode: 0644
+  with_items:
+     - internal.conf
+     - named.conf
+
+- name: Copying syslog-ng templates to server
+  become: yes
+  template: src={{ item.src }} dest={{ item.dest }}
+  with_items:
+    - { src: 'nginx.conf.j2', dest: '/etc/syslog-ng/conf.d/nginx.conf'}
+    - { src: 'smb.conf.j2', dest: '/etc/syslog-ng/conf.d/smb.conf'}
+
+- name: Ensuring existence of /var/log/syslog-ng directory
+  become: yes
+  file: 
+    path: /var/log/syslog-ng
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+
+- name: Creating certificate directories
+  become: yes
+  file: 
+    name: "/etc/syslog-ng/{{ item }}"
+    state: directory
+    mode: 0755
+  loop:
+    - ca.d
+    - cert.d
+
+- name: Copying TLS files
+  become: yes
+  template: src={{ item.src }} dest={{ item.dest }}
+  with_items:
+    - { src: '../../../../CA/managed_certificates/clientkey-{{ node_hash }}.pem', dest: '/etc/syslog-ng/cert.d/serverkey.pem'}
+    - { src: '../../../../CA/managed_certificates/clientcert-{{ node_hash }}.pem', dest: '/etc/syslog-ng/cert.d/servercert.pem'}
+    - { src: '../../../../CA/managed_certificates/cacert.pem', dest: '/etc/syslog-ng/ca.d/.'}
+
+- name: Restart syslog-ng
+  become: yes
+  service:
+      name: syslog-ng
+      state: restarted
+      enabled: yes

@@ -1,0 +1,23 @@
+options {
+    directory "/var/cache/bind";
+    recursion no;
+    allow-transfer { none; };
+
+    dnssec-validation auto;
+
+    auth-nxdomain no;    # conform to RFC1035
+    listen-on-v6 { any; };
+    listen-on { {{ syslog_ip | mandatory }}; };
+};
+
+logging {
+    channel querylog{
+        file "/var/log/named/querylog";
+        severity debug 10;
+        print-category yes;
+        print-time yes;
+        print-severity yes;
+    };
+    category queries { querylog;};
+};
+

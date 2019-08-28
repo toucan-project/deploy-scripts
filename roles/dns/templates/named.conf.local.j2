@@ -1,0 +1,4 @@
+zone "{{ auth_domain | mandatory }}" {
+    type master;
+    file "/etc/bind/zones/db.{{ auth_domain | mandatory }}";
+};

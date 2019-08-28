@@ -1,0 +1,50 @@
+- name: Copying syslog-ng client configuration
+  become: yes
+  copy:
+    src: syslog-ng.conf
+    dest: /etc/syslog-ng/syslog-ng.conf
+
+- name: Creating certificate directories
+  become: yes
+  file: 
+    name: "/etc/syslog-ng/{{ item }}"
+    state: directory
+    mode: 0755
+  loop:
+    - ca.d
+    - cert.d
+
+- name: Copying syslog-client configuration
+  become: yes
+  template: src={{ item.src }} dest={{ item.dest }}
+  with_items: 
+    - { src: 'internal.conf.j2', dest: '/etc/syslog-ng/conf.d/internal.conf'}
+    - { src: 'nginx.conf.j2', dest: '/etc/syslog-ng/conf.d/nginx.conf'}
+    - { src: 'smb.conf.j2', dest: '/etc/syslog-ng/conf.d/smb.conf'}
+
+- name: Copying TLS files
+  become: yes
+  template: src={{ item.src }} dest={{ item.dest }}
+  with_items:
+    - { src: '../../../../CA/managed_certificates/clientkey-{{ node_hash }}.pem', dest: '/etc/syslog-ng/cert.d/clientkey.pem'}
+    - { src: '../../../../CA/managed_certificates/clientcert-{{ node_hash }}.pem', dest: '/etc/syslog-ng/cert.d/clientcert.pem'}
+    - { src: '../../../../CA/managed_certificates/cacert.pem', dest: '/etc/syslog-ng/ca.d/.'}
+
+- name: Get CA hash
+  become: yes
+  shell: openssl x509 -noout -hash -in /etc/syslog-ng/ca.d/cacert.pem 
+  register: cacert_hash
+
+- name: Make symlink
+  become: yes
+  file:
+    src: /etc/syslog-ng/ca.d/cacert.pem 
+    dest: /etc/syslog-ng/ca.d/{{ cacert_hash.stdout }}.0
+    state: link
+
+- name: Restart syslog-ng
+  become: yes
+  service:
+      name: syslog-ng
+      state: restarted
+      enabled: yes

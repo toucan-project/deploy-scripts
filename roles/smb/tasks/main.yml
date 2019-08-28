@@ -1,0 +1,27 @@
+- name: Install samba package
+  become: yes
+  apt:
+      name: samba
+      state: present
+
+- name: Copy smb config
+  become: yes
+  copy:
+      src: templates/smb.conf
+      dest: /etc/samba/smb.conf
+      owner: root
+      group: root
+      mode: 0644
+
+- name: Create smb directory
+  become: yes
+  file:
+      state: directory
+      name: /data/shares/CISO
+
+- name: Restart samba service
+  become: yes
+  service:
+      name: smbd
+      state: restarted
+      enabled: yes

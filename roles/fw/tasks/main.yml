@@ -1,0 +1,19 @@
+- name: Copying service file
+  become: yes
+  copy:
+    src: firewall-rules.service
+    dest: /lib/systemd/system/.
+
+- name: Creating firewall rules
+  become: yes
+  template:
+    src: iptables.rules_{{ label | mandatory }}
+    dest: /etc/iptables.rules
+
+- name: Enabling canary systemd service
+  become: yes
+  systemd:
+    name: firewall-rules
+    enabled: yes
+    state: started
+    daemon_reload: yes

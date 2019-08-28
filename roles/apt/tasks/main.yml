@@ -1,0 +1,22 @@
+- name: Update packages
+  become: yes
+  apt: 
+      force_apt_get: yes
+      update_cache: yes
+      upgrade: yes
+      autoremove: yes
+
+- name: Install packages
+  become: yes
+  apt:
+      name: "{{ packages }}"
+      state: present
+  vars:
+     packages:
+            - python3-virtualenv
+            - openssh-server
+            - syslog-ng
+            - python3
+            - curl
+            - vim
+            - git

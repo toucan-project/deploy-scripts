@@ -1,0 +1,389 @@
+- name: Querying 'SSH_CLIENT' environment variable for remote IP
+  set_fact:
+    remote_ip: "{{ ansible_env.SSH_CLIENT.split() | first }}"
+
+- name: Setting up firewall
+  become: yes
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: 0600 
+  loop:
+    - { 'src': 'firewall-rules.service', 'dest': '/lib/systemd/system/.'}
+    - { 'src': 'iptables.empty', 'dest': '/etc/.'}
+
+- name: Copying firewall configuration
+  become: yes
+  template:
+    src: iptables.rules
+    dest: /etc/.
+    mode: 0600
+
+- name: "Activating firewall with whitelisted {{ remote_ip }}"
+  become: yes
+  systemd:
+    name: firewall-rules.service
+    enabled: yes
+    state: restarted
+    daemon_reload: yes
+
+- name: Install packages
+  become: yes
+  apt:
+    name: ['nginx', 'nginx-common', 'uwsgi', 'python3-pymysql',
+           'uwsgi-plugin-python3', 'mariadb-server', 'mupdf-tools',
+           'libmariadbclient-dev', 'virtualenv', 'libffi-dev', 
+           'libfuzzy-dev', 'redis']
+    state: present
+    update_cache: yes
+
+- name: Copying nginx configuration
+  become: yes
+  template:
+    src: default_{{ label | mandatory }}
+    dest: /etc/nginx/sites-available/default
+
+- name: Configuring redis
+  become: yes
+  template:
+    src: redis
+    dest: /etc/redis/redis.conf
+
+- name: Removing default artifacts
+  become: yes
+  file:
+    state: absent
+    path: /opt/html/index.nginx-debian.html
+
+- name: Creating application directories
+  become: yes
+  file:
+      name: "{{ item }}"
+      state: directory
+      owner: www-data
+      group: www-data
+  loop:
+    - /opt/run
+    - /opt/django/media
+    - /opt/django/media/docs
+    - /opt/django/samples
+    - /opt/django/.ansible
+    - /opt/django/.deploy_cache
+    - /var/log/django
+    - /var/log/django/uwsgi
+
+- name: Creating redis directory
+  become: yes
+  file: 
+    name: /var/lib/redis
+    state: directory
+    owner: redis
+    group: redis
+
+- name: Copying new systemd service file
+  become: yes
+  copy:
+    src: redis-server.service
+    dest: /lib/systemd/system/redis-server.service
+
+- name: Set vm.overcommit_memory=1
+  become: yes
+  sysctl:
+    name: vm.overcommit_memory
+    value: 1
+    reload: yes
+    state: present
+    sysctl_set: yes
+
+- name: Creating environment file
+  become: yes
+  template:
+    src: dotenv
+    dest: /opt/django/.env
+    mode: 0600
+    owner: www-data
+
+- name: Create /var/www/html/static directory
+  become: yes
+  file:
+    name: "{{ item }}"
+    state: directory
+    owner: root
+  loop:
+    - '/var/www/html/static'
+    - '/var/www/html/static/logo'
+
+- name: Create /var/log/django/log_daemon.log
+  become: yes
+  file:
+    name: '/var/log/django/log_daemon.log'
+    state: touch
+    owner: www-data
+
+- name: Copy requirements.txt
+  become: yes
+  copy:
+      src: ../../../requirements.txt
+      dest: /opt/django/.
+
+- name: Install requirements
+  become: yes
+  pip:
+      requirements: /opt/django/requirements.txt
+      virtualenv: /opt/env
+
+- name: Create /opt/django/samples directory
+  become: yes
+  file:
+    name: '/opt/django/samples'
+    state: directory
+    recurse: yes
+
+- name: Copy requirements.txt
+  become: yes
+  copy:
+      src: ../../../requirements.txt
+      dest: /opt/django/.
+
+- name: Install requirements
+  become: yes
+  pip:
+      requirements: /opt/django/requirements.txt
+      virtualenv: /opt/env
+
+- name: Creating tar file with server components
+  local_action: 
+    module: shell tar --exclude='*media*' \ 
+           --exclude '*__pycache*' \ 
+           --exclude '.deploy*' \
+           --exclude '*.sqlite3' \
+           --exclude '.secret*' \ 
+           --exclude '.coverage*' \
+           --exclude '*test*' \
+           --xz -cvf  /tmp/deploy.tar.xz .
+    args:
+      chdir: "{{ playbook_dir }}/../django"
+
+- name: Extracting server files on remote host
+  become: yes
+  unarchive:
+    src: /tmp/deploy.tar.xz
+    dest: /opt/django/.
+    mode: 0654 
+    owner: root
+    group: www-data
+
+- name: Deleting local archive
+  local_action: shell rm /tmp/deploy.tar.xz
+
+- name: Copying beautiful toucan
+  become: yes
+  copy:
+    src: toucan.png
+    dest:  /var/www/html/static/logo/toucan.png
+
+- name: Copying favicon
+  become: yes
+  copy:
+    src: toucan.ico
+    dest:  /var/www/html/static/favicon.ico
+
+- name: Copying rest_framework.service file
+  become: yes
+  copy:
+    src: rest_framework.service_{{ label | mandatory }}
+    dest: /lib/systemd/system/rest_framework.service
+    mode: 0600
+
+- name: Copying django-rq worker service files
+  become: yes
+  copy:
+    src: "{{ item }}"
+    dest: /lib/systemd/system/.
+  loop:
+    - rqscheduler.service
+    - rqworker.service
+
+- name: Copying log_daemon.service file
+  become: yes
+  copy:
+    src: log_daemon.service
+    dest: /lib/systemd/system/log_daemon.service
+    mode: 0600
+
+- name: Make manage.py executable
+  become: yes
+  file:
+    name: /opt/django/manage.py
+    mode: 'u+x'
+
+- name: check if database exists
+  shell: mysql -e 'SHOW DATABASES;' | grep rest_framework 
+  register: dbstatus
+  failed_when: dbstatus.rc == 2
+
+- name: Create MySQL database 'rest_framework'
+  become: yes
+  mysql_db: 
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    name: rest_framework
+    encoding: utf8
+    state: present
+  when: dbstatus.rc == 1
+
+- name: Create user 'cadmin' for 'rest_framework' management
+  become: yes
+  mysql_user:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    name: "{{ mysql_user | mandatory }}"
+    password: "{{ mysql_password | mandatory }}"
+    priv: 'rest_framework.*:ALL'
+    state: present
+  when: dbstatus.rc == 1
+
+- name: Migrating database changes
+  become: yes
+  environment: 
+    DJANGO_SERVER_TYPE: build
+    SECRET_KEY: "{{ secret_key | mandatory}}"
+  django_manage:
+    command: migrate
+    app_path: /opt/django
+    virtualenv: /opt/env
+
+- name: Checking for fixture directories
+  become: yes
+  find:
+    file_type: directory
+    paths: '/opt/django'
+    patterns: 'fixtures'
+    recurse: yes
+  register: dirs
+
+- name: Finding fixtures
+  become: yes
+  find:
+    file_type: file
+    paths: "{{ item.path }}"
+    patterns: '*.json'
+    recurse: yes
+  loop: "{{ dirs.files }}"
+  register: fixtures
+
+- name: Django manage loaddata
+  become: yes
+  environment: 
+    DJANGO_SERVER_TYPE: build
+    SECRET_KEY: "{{ secret_key | mandatory}}"
+  django_manage:
+    command: loaddata
+    app_path: /opt/django
+    fixtures: "{{ item.path }}"
+    virtualenv: /opt/env
+  loop: "{{ fixtures.results.0.files }}"
+  when: dbstatus.rc == 1
+
+- name: Remove Django fixtures
+  file:
+    name: "{{ item.path }}"
+    state: absent
+  loop: "{{ fixtures.results.0.files }}"
+
+- name: Collecting static files
+  become: yes
+  environment: 
+    DJANGO_SERVER_TYPE: build
+    SECRET_KEY: "{{ secret_key | mandatory}}"
+  django_manage:
+    command: collectstatic
+    app_path: /opt/django
+    virtualenv: /opt/env
+
+- name: Rekey and save the vault secret in the database
+  become: yes
+  shell: DJANGO_SERVER_TYPE=build SECRET_KEY={{ secret_key | mandatory}} /opt/env/bin/python3 /opt/django/manage.py encryptvaultkey {{vault_key | mandatory}}
+  no_log: true
+
+- name: Creating .ssh directory
+  become: yes
+  file:
+    name: /var/www/.ssh
+    state: directory
+    owner: www-data
+    mode: 0700
+
+- name: Removing old known_hosts file
+  become: yes
+  file: 
+    name: /var/www/.ssh/known_hosts
+    state: absent
+
+- name: Adding known_hosts for each canary_node and canary_main
+  become: yes
+  shell: /usr/bin/ssh-keyscan -H "{{ item | quote }}" >> /var/www/.ssh/known_hosts
+  with_items:
+    - "{{ groups['canary_main'] }}"
+    - "{{ groups['canary_nodes'] }}"
+
+- name: Setting correct permissions on known_hosts
+  become: yes
+  file:
+    name: /var/www/.ssh/known_hosts
+    state: touch
+    owner: www-data
+    group: www-data
+    mode: 0700
+
+- name: Enabling rest_framework systemd socket
+  become: yes
+  systemd:
+    name: 'rest_framework.socket'
+    enabled: yes
+    daemon_reload: yes
+
+- name: Enabling rest_framework systemd service
+  become: yes
+  systemd:
+    name: 'rest_framework.service'
+    enabled: yes
+    state: restarted
+
+- name: Enabling ssh-agent for www-data user
+  become: yes
+  systemd:
+    name: 'ssh-agent.service'
+    enabled: yes
+    state: started
+
+- name: Enabling log_daemon
+  become: yes
+  systemd:
+    name: 'log_daemon.service'
+    enabled: yes
+    state: restarted
+
+- name: Enabling redis
+  become: yes
+  systemd:
+    name: 'redis.service'
+    enabled: yes
+    state: restarted
+
+- name: Enabling nginx
+  become: yes
+  systemd:
+    name: 'nginx.service'
+    enabled: yes
+    state: restarted
+    daemon_reload: yes
+
+- name: Enabling rqservices
+  become: yes
+  systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: restarted
+    daemon_reload: yes
+  loop:
+    - rqworker.service
+    - rqscheduler.service

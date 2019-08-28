@@ -1,0 +1,10 @@
+- hosts: noot
+  vars_prompt:
+    - name: "node_hash"
+      prompt: "Please enter node hash"
+  roles:
+    #  - apt
+    #  - sshd
+    #  - nginx
+    #  - smb
+      - syslog-client

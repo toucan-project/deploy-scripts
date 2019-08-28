@@ -1,0 +1,7 @@
+DJANGO_SERVER_TYPE=prod
+SSH_AUTH_SOCK=/opt/run/ssh-agent.socket
+SECRET_KEY={{ secret_key | mandatory }}
+ALLOWED_HOSTS={{ ansible_hosts | mandatory }}
+MYSQL_USER={{ mysql_user | mandatory }}
+MYSQL_PASSWORD={{ mysql_password | mandatory }}
+REDIS_PASSWORD={{ redis_password | mandatory }}

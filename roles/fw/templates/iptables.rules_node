@@ -1,0 +1,6 @@
+*filter
+:INPUT ACCEPT [3021:1311844]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [3340:459380]
+-A INPUT ! -s {{ syslog_ip | mandatory }}/32 -p tcp -m tcp --dport 22 -j DROP
+COMMIT

@@ -1,0 +1,32 @@
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_tokens off;
+    more_set_headers 'Server: Microsoft-IIS/8.0';
+    root /var/www/html;
+
+    index index.html index.htm index.nginx-debian.html;
+
+    server_name _;
+
+    location /images/ {
+      root /var/www/html/;
+      try_files $uri $uri/ =404;
+    }
+
+    location / {
+      root      /data/shares/;
+      client_body_temp_path /var/dav/temp;
+      dav_methods     PUT DELETE MKCOL COPY MOVE;
+      dav_ext_methods   PROPFIND OPTIONS;
+      create_full_put_path  on;
+      dav_access    user:rw group:rw all:rw;
+      autoindex     on;
+      limit_except GET PROPFIND OPTIONS {
+        allow 127.0.0.1;
+        deny  all;
+      }
+      allow all;
+    }
+
+}

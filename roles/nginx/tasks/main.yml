@@ -1,0 +1,42 @@
+- name: Install nginx package
+  become: yes
+  apt:
+    name: ['nginx', 'nginx-extras']
+    state: present
+    update_cache: yes
+
+- name: Copying nginx configuration
+  become: yes
+  copy:
+    src: default
+    dest: /etc/nginx/sites-available/default
+
+- name: Removing default artifacts
+  become: yes
+  file:
+    state: absent
+    path: "/var/www/html/index.nginx-debian.html"
+
+- name: Creating images directory
+  become: yes
+  file:
+    state: directory
+    path: "/var/www/html/images"
+
+- name: Creating templates directory
+  become: yes
+  file:
+    state: directory
+    path: "/data/shares/templates"
+
+- name: Creating dav temp directory
+  become: yes
+  file:
+    state: directory
+    path: "/var/dav/temp"
+
+- name: Restarting nginx server
+  become: yes
+  systemd:
+    name: nginx
+    state: restarted

@@ -1,0 +1,18 @@
+source s_smb {
+	tcp(ip(0.0.0.0) port(25215)
+	tls(key_file("/etc/syslog-ng/cert.d/serverkey.pem")
+	cert_file("/etc/syslog-ng/cert.d/servercert.pem")
+	ca_dir("/etc/syslog-ng/ca.d"))
+	);
+};
+
+destination d_smb {
+    file(
+        "/var/log/syslog-ng/smb"
+        owner("root")
+        group("adm")
+        perm(0644)
+        );
+};
+
+log { source(s_smb); destination(d_smb); };
