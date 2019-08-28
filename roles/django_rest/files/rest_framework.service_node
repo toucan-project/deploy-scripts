@@ -14,4 +14,4 @@ NotifyAccess=all
 Environment=DJANGO_SERVER_TYPE=prod
 Environment=SSH_AUTH_SOCK=/opt/run/ssh-agent.socket
 Environment=SECRET_KEY={{ secret_key | mandatory }}
-Environment=ALLOWED_HOSTS={{ ansible_hosts | mandatory }}
+Environment=ALLOWED_HOSTS={{ hostname | mandatory }}
