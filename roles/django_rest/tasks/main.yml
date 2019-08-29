@@ -139,18 +139,6 @@
     state: directory
     recurse: yes
 
-- name: Copy requirements.txt
-  become: yes
-  copy:
-      src: ../../../requirements.txt
-      dest: /opt/django/.
-
-- name: Install requirements
-  become: yes
-  pip:
-      requirements: /opt/django/requirements.txt
-      virtualenv: /opt/env
-
 - name: Creating tar file with server components
   local_action: 
     module: shell tar --exclude='*media*' \ 
