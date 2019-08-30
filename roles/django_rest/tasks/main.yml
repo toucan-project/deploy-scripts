@@ -152,6 +152,13 @@
     args:
       chdir: "{{ playbook_dir }}/../toucan"
 
+- name: Removing old installation
+  become: yes
+  file:
+    path: /opt/django
+    state: absent
+    recurse: yes
+
 - name: Extracting server files on remote host
   become: yes
   unarchive:

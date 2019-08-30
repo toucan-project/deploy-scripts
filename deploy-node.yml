@@ -3,8 +3,8 @@
     - name: "node_hash"
       prompt: "Please enter node hash"
   roles:
-    #  - apt
-    #  - sshd
-    #  - nginx
-    #  - smb
+      - apt
+      - sshd
+      - nginx
+      - smb
       - syslog-client
